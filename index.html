@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Abgeordnetenhauswahl Berlin 2026: Was in den Programmen steht</title>
+<meta name="description" content="Die sieben Wahlprogramme zur Wahl des Berliner Abgeordnetenhauses am 20. September 2026, in 484 Fragen zerlegt — mit Seitenangabe und wörtlichem Zitat zu jeder Antwort.">
+<meta name="robots" content="index,follow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><div class="wrap"><h1>Abgeordnetenhauswahl Berlin 2026: Was in den Programmen steht</h1></div></header>
+<nav><div class="in">
+<span class="navttl">Berlin 2026</span>
+<button data-v="start" class="on">Start</button>
+<button data-v="themen">Themen</button>
+<button data-v="partei">Parteien</button>
+<button data-v="streit">Streitfragen</button>
+<button data-v="ausw">Auswertung</button>
+<button data-v="prog">Programme</button>
+<button data-v="merk">Merkliste<span id="mkc" class="mk hide"></span></button>
+<div class="srch"><input id="q" type="search" placeholder="Suchen, z.&nbsp;B. Mietendeckel, Tempelhofer Feld&nbsp;…" aria-label="In allen Fragen und Antworten suchen"></div>
+</div></nav>
+<div id="shell" class="shell nosb"></div>
+<footer id="ft">Grundlage: die sieben Wahlprogramme zur Wahl des Berliner Abgeordnetenhauses am
+20.&nbsp;September 2026, zusammen 1.116 Seiten. Diese Übersicht beschreibt Positionen und bewertet
+sie nicht &mdash; sie enthält kein Ranking und keine Wahlempfehlung.
+<a href="#" onclick="zurMethodik();return false">Wie diese Auswertung entstanden ist</a></footer>
+
+<div id="laden" class="ladebox">Die Auswertung wird geladen&nbsp;…</div>
+
+<!-- config.js trägt Projekt-URL und öffentlichen Schlüssel. Fehlt die Datei,
+     läuft die Seite ohne Abgleich weiter — genau so soll es sein. -->
+<script src="config.js"></script>
+<script>
+(function () {
+  window.__PDFS__ = null;
+  fetch('daten.json')
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (d) {
+      window.__DATA__ = d;
+      var l = document.getElementById('laden'); if (l) l.remove();
+      ['sync.js', 'app.js'].forEach(function (src) {
+        var s = document.createElement('script');
+        s.src = src; s.async = false;
+        document.body.appendChild(s);
+      });
+    })
+    .catch(function (e) {
+      var l = document.getElementById('laden');
+      if (l) l.textContent = 'Die Auswertung konnte nicht geladen werden (' + e.message +
+        '). Bitte lade die Seite neu.';
+    });
+})();
+</script>
+</body>
+</html>
