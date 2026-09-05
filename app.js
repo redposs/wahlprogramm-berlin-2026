@@ -3,10 +3,26 @@ if(!D)throw new Error('Daten fehlen — daten.json wurde nicht geladen.');
 var P=D.parteien;
 var PCL={'AfD':'#1f7f97','CDU':'#4a4741','FDP':'#8f6c00','Grüne':'#37772c','Die Linke':'#7d4bbf','SPD':'#c62f27','Volt':'#26719f'};
 var PCD={'AfD':'#4fb6cf','CDU':'#c9c3b6','FDP':'#dbb43c','Grüne':'#6fbb5f','Die Linke':'#b18ee0','SPD':'#e8736a','Volt':'#7cc3f0'};
-function dark(){var r=document.documentElement.getAttribute('data-theme');
-  if(r==='dark')return true; if(r==='light')return false;
-  return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;}
+function dark(){return false}
 var PC=new Proxy({},{get:function(_,k){return (dark()?PCD:PCL)[k]}});
+var PSPEK=['Die Linke','Grüne','SPD','Volt','FDP','CDU','AfD'].filter(function(p){return D.parteien.indexOf(p)>=0});
+var PSORT=load('wp26_psort','az'); // 'az' oder 'spektrum'
+function parteienNachSort(){
+  if(PSORT==='spektrum')return PSPEK.slice();
+  return D.parteien.slice().sort(function(a,b){return a.localeCompare(b,'de')});}
+function setPSort(m){PSORT=m;save('wp26_psort',m);render();}
+function psortBtn(){
+  return '<div class="sortb" style="margin-left:0"><span class="fl">Reihenfolge</span>'+
+    [['az','A–Z'],['spektrum','Spektrum']].map(function(x){
+      return '<button class="'+(PSORT===x[0]?'on':'')+'" onclick="setPSort(\''+x[0]+'\')"'+
+        (x[0]==='spektrum'?' title="Grobe Einordnung von links nach rechts \u2014 eigene Einschätzung, kein Anspruch auf Objektivität"':'')+
+        '>'+x[1]+'</button>'}).join('')+'</div>';}
+var BALKEN=load('wp26_balken','farbe'); // 'farbe' oder 'kontrast'
+function setBalken(m){BALKEN=m;save('wp26_balken',m);render();}
+function balkenBtn(){
+  return '<div class="sortb" style="margin:8px 0 2px"><span class="fl">Darstellung</span>'+
+    [['farbe','Farben'],['kontrast','Hoher Kontrast']].map(function(x){
+      return '<button class="'+(BALKEN===x[0]?'on':'')+'" onclick="setBalken(\''+x[0]+'\')">'+x[1]+'</button>'}).join('')+'</div>';}
 var SL={K:'Klare Forderung',A:'Lehnt ab',T:'Teils dafür, teils dagegen',Z:'Absichtserklärung'};
 var SLL={K:'Klare Forderung',A:'Nur Ablehnung',T:'Teils dafür, teils dagegen',Z:'Absichtserklärung'};
 var LEGT={K:'Das Programm fordert etwas Bestimmtes. Manche dieser Antworten lehnen daneben ausdrücklich etwas ab — das steht dann in der Antwort.',
@@ -15,8 +31,8 @@ var LEGT={K:'Das Programm fordert etwas Bestimmtes. Manche dieser Antworten lehn
  Z:'Das Programm nennt eine Absicht, ohne ein Instrument zu benennen.'};
 var IN={'AfD':'AfD','CDU':'CDU','FDP':'FDP','Grüne':'Gr','Die Linke':'Li','SPD':'SPD','Volt':'Vo'};
 var KERN=5; // ab so vielen Parteien gilt eine Frage als Kernfrage
-var ALL=[],BYUT={},TFS=[],BYTF={};
-D.gruppen.forEach(function(g){g.tf.forEach(function(t){
+var ALL=[],BYUT={},TFS=[],BYTF={},BYGRP={};
+D.gruppen.forEach(function(g){BYGRP[g.c]=g;g.tf.forEach(function(t){
   t._g=g.n;t._gc=g.c;TFS.push(t);BYTF[t.c]=t;
   t.fragen.forEach(function(q){q._g=g.n;q._gc=g.c;q._t=t.n;q._tc=t.c;
     q._n=Object.keys(q.z).length;q._kern=q._n>=KERN;
@@ -36,6 +52,8 @@ var MK=load('wp26_mk',{}), WAHL=load('wp26_wahl',{});
 function mkCount(){return Object.keys(MK).length}
 function updMk(){var n=mkCount(),b=document.getElementById('mkc');
   if(!b)return;b.textContent=n?n:'';b.className=n?'mk':'mk hide';}
+function updDurch(){var n=Object.keys(WAHL).length,b=document.getElementById('dfc');
+  if(!b)return;b.textContent=n?n+'/'+ALL.length:'';b.className=n?'mk':'mk hide';}
 function toggleMk(ut){if(MK[ut])delete MK[ut];else MK[ut]=1;save('wp26_mk',MK);updMk();
   document.querySelectorAll('[data-star="'+ut+'"]').forEach(function(s){
     s.className='star'+(MK[ut]?' on':'');s.textContent=MK[ut]?'★':'☆';});
@@ -49,9 +67,11 @@ function belege(p,txt){
     return '<a class="pl" href="programme/'+f+'#page='+m+'" target="_blank" rel="noopener" '+
       'title="Seite '+m+' im Programm der '+esc(p)+' öffnen">'+m+'</a>';});}
 /* ---------- Bausteine ---------- */
-function chips(q,nur){return (nur||P).map(function(p){var c=q.z[p];
-  return '<i class="chip '+(c?c.s:'n')+'" title="'+esc(p)+': '+(c?SLL[c.s]:'Steht nicht im Programm')+
-    (c&&c.abl?' (lehnt dabei etwas ab)':'')+'">'+IN[p]+'</i>';}).join('');}
+function chips(q,nur,klick){return (nur||P).map(function(p){var c=q.z[p];
+  return '<i class="chip'+(c?'':' n')+'" style="border-bottom-color:'+(c?PC[p]:'#DFE2E8')+
+    (c?';background:'+PC[p]+'1A':'')+(klick?';cursor:pointer':'')+'" title="'+esc(p)+': '+
+    (c?SLL[c.s]:'Steht nicht im Programm')+(c&&c.abl?' (lehnt dabei etwas ab)':'')+'"'+
+    (klick?' onclick="durchSpringZuPartei(\''+p.replace(/'/g,"\\'")+'\')"':'')+'>'+IN[p]+'</i>';}).join('');}
 function flags(q){var h='';
   if(q.art==='gegenlaeufig')h+='<span class="badge um">Umstritten</span>';
   else if(q.art==='ungeteilt'&&q._n>=5)h+='<span class="badge kw">Kein Widerspruch</span>';
@@ -73,12 +93,12 @@ function star(ut){return '<button class="star'+(MK[ut]?' on':'')+'" data-star="'
   'aria-label="Zur Merkliste hinzufügen oder entfernen">'+(MK[ut]?'★':'☆')+'</button>';}
 function card(p,c,opt){
   opt=opt||{};
-  if(!c)return '<div class="pc nt"><div class="ph"><span class="pn" style="color:var(--soft)">'+esc(p)+
+  if(!c)return '<div class="pc nt" data-partei="'+esc(p)+'"><div class="ph"><span class="pn" style="color:var(--soft)">'+esc(p)+
     '</span></div><div class="nx">Steht nicht im Programm</div></div>';
   var sel=opt.ut&&WAHL[opt.ut]===p;
-  var h='<div class="pc '+c.s+(sel?' sel':'')+'">'+
-    (sel?'<div class="zub">✓ <b>Deine Zustimmung</b></div>':'')+'<div class="ph"><span class="pn" style="color:'+PC[p]+'">'+esc(p)+
-    '</span><span class="st '+c.s+'">'+SLL[c.s]+'</span></div><p>'+esc(c.p)+'</p>';
+  var h='<div class="pc'+(sel?' sel':'')+'" data-partei="'+esc(p)+'">'+
+    (sel?'<div class="zub">✓ <b>Deine Zustimmung</b></div>':'')+'<div class="ph" style="border-bottom-color:'+PC[p]+'"><span class="pn">'+esc(p)+
+    '</span><span class="st" style="color:'+PC[p]+'">'+SLL[c.s]+'</span></div><p>'+esc(c.p)+'</p>';
   if(c.z)h+='<div class="q2">'+esc(c.z)+'</div>';
   if(c.abl)h+='<div class="hint"><b>Lehnt dabei ausdrücklich etwas ab.</b> Die eigene Forderung steht '+
     'oben; die Ablehnung ist Teil derselben Aussage.</div>';
@@ -87,7 +107,7 @@ function card(p,c,opt){
   if(c.e)h+='<div><span class="lbl">Nennt es:</span> '+esc(c.e)+'</div>';
   if(c.a)h+='<div><span class="lbl">Anmerkung:</span> '+esc(c.a)+'</div>';
   h+='<div><span class="lbl">Im Programm auf</span> <span class="beleg">'+belege(p,c.b)+'</span></div></div>';
-  if(opt.pick)h+='<div style="margin-top:10px"><button class="clr" onclick="pickPos(\''+opt.ut+
+  if(opt.pick)h+='<div style="margin-top:10px"><button class="'+(sel?'zst on':'zst')+'" onclick="pickPos(\''+opt.ut+
     '\',\''+p.replace(/'/g,"\\'")+'\')">'+(sel?'Zustimmung aufheben':'Stimme zu')+'</button></div>';
   return h+'</div>';}
 function lagerzeile(q){
@@ -98,12 +118,9 @@ function lagerzeile(q){
     (d.length?esc(d.join(', ')):'niemand')+' &nbsp;·&nbsp; '+
     '<span style="color:var(--at)"><b>Lehnt etwas davon ab:</b></span> '+
     (g.length?esc(g.join(', ')):'niemand')+'</div>';}
-function qBlock(q,open,pick,zusatz){
+function qInhalt(q,pick){
   pick=(pick===undefined)?true:pick;
-  var h='<details class="q'+klasse(q)+'"'+(open?' open':'')+' id="f-'+q.c+'"'+ktitel(q)+
-    '><summary><div class="qt"><div class="qf">'+esc(q.f)+'</div><div class="qs">'+esc(q.s)+'</div>'+
-    flags(q)+(zusatz||'')+'</div><div class="chips">'+chips(q,sichtbareParteien())+star(q.c)+
-    '</div></summary><div class="qbody">';
+  var h='';
   var w=pick?WAHL[q.c]:null;
   if(w)h+='<div class="pickbar">Du stimmst zu: <b>'+esc(w)+'</b> '+
     '<button class="clr" onclick="pickPos(\''+q.c+'\',\''+w.replace(/'/g,"\\'")+'\')">Zustimmung aufheben</button></div>';
@@ -112,25 +129,44 @@ function qBlock(q,open,pick,zusatz){
        'Die konkreten Vorschläge können trotzdem weit auseinandergehen — vergleiche die Antworten.</div>';
   if(q.v)h+='<div class="hint vgl"><b>Nur bedingt vergleichbar.</b> '+esc(q.v)+'</div>';
   h+='<div class="pos">'+sichtbareParteien().map(function(p){
-      return card(p,q.z[p],{ut:q.c,pick:pick&&q.z[p]})}).join('')+
-    '</div></div></details>';
+      return card(p,q.z[p],{ut:q.c,pick:pick&&q.z[p]})}).join('')+'</div>';
   return h;}
-function legende(){return '<div class="leg">'+
+function qBlock(q,open,pick,zusatz){
+  pick=(pick===undefined)?true:pick;
+  var h='<details class="q'+klasse(q)+'"'+(open?' open':'')+' id="f-'+q.c+'"'+ktitel(q)+
+    '><summary><div class="qt"><div class="qf">'+esc(q.f)+'</div><div class="qs">'+esc(q.s)+'</div>'+
+    flags(q)+(zusatz||'')+'</div><div class="chips">'+chips(q,sichtbareParteien())+star(q.c)+
+    '</div></summary><div class="qbody">'+qInhalt(q,pick)+'</div></details>';
+  return h;}
+function begriffeBox(){
+  return '<details class="info begriffe"><summary><h3>Was bedeuten die Begriffe?</h3>'+
+   '<span class="mhint">— kurz erklärt: die Antwort-Arten und die Hinweise unter manchen Fragen</span>'+
+   '</summary><div class="begr">'+
+   '<p><b>Die Antwort-Arten:</b></p>'+
    ['K','A','T','Z'].map(function(k){
-     return '<span title="'+esc(LEGT[k])+'"><i class="sw" style="background:var(--'+k.toLowerCase()+')"></i>'+
-       SLL[k]+'</span>'}).join('')+
-   '<span title="Das Thema kommt im Programm nicht vor. Das ist keine Ablehnung."><i class="sw" '+
-   'style="background:var(--nt)"></i>Steht nicht im Programm</span></div>';}
+     return '<p><b>'+esc(SLL[k])+'.</b> '+esc(LEGT[k])+'</p>'}).join('')+
+   '<p><b>Steht nicht im Programm.</b> Das Thema kommt im Programm nicht vor. Das ist keine '+
+   'Ablehnung.</p>'+
+   '<p style="margin-top:14px"><b>Die Hinweise unter manchen Fragen:</b></p>'+
+   '<p><span class="badge um">Umstritten</span> Mindestens eine Partei lehnt ausdrücklich ab, was '+
+   'mindestens eine andere fordert.</p>'+
+   '<p><span class="badge kw">Kein Widerspruch</span> Keine Partei lehnt hier ausdrücklich ab. Die '+
+   'konkreten Vorschläge können trotzdem weit auseinandergehen — vergleiche die Antworten.</p>'+
+   '<p><span class="badge vg">Nur bedingt vergleichbar</span> Die Programme beantworten die Frage '+
+   'nicht in vergleichbarer Weise, zum Beispiel weil sie unterschiedliche Ebenen oder Zeiträume '+
+   'meinen.</p></div></details>';}
 /* ---------- Balkendiagramm ---------- */
 // opt: {two:bool, names:[..], col:[farbe1,farbe2], sort:'html der Sortierleiste', einheit:'%'}
 function chart(title,sub,rows,opt){
   opt=opt||{};
   var two=opt.two, names=opt.names||[], col=opt.col||['var(--c1)','var(--c2)'];
+  var kontrast=BALKEN==='kontrast';
+  if(kontrast)col=two?['#0072B2','#E69F00']:['#0072B2'];
   var eh=opt.einheit===undefined?' %':opt.einheit;
   var mx=Math.max.apply(null,rows.map(function(r){return two?Math.max(r.a,r.b):r.a}))||1;
   var nk=opt.nk===undefined?1:opt.nk;
   var h='<div class="chart"><div class="chart-h"><div><div class="chart-t">'+esc(title)+'</div>'+
-    '<div class="chart-s">'+esc(sub)+'</div></div>'+(opt.sort||'')+'</div>';
+    '<div class="chart-s">'+esc(sub)+'</div></div>'+(opt.sort||'')+'</div>'+balkenBtn();
   // Legende oben: sie erklärt die Farben, bevor man die Balken liest.
   if(two)h+='<div class="clg oben"><span><i class="csw" style="background:'+col[0]+'"></i>'+esc(names[0])+
     '</span><span><i class="csw" style="background:'+col[1]+'"></i>'+esc(names[1])+'</span></div>';
@@ -147,7 +183,7 @@ function chart(title,sub,rows,opt){
       h+='<div class="bar" title="'+esc(r.n)+' — '+de(r.a,nk)+eh+
        (r.s!=null?' (rund '+de(r.s,0)+' Seiten)':'')+'">'+
        '<div class="lbl">'+esc(r.n)+'</div><div class="track">'+
-       '<div class="fill" style="width:'+(r.a/mx*100)+'%;background:'+(r.c||col[0])+'"></div></div>'+
+       '<div class="fill" style="width:'+(r.a/mx*100)+'%;background:'+(kontrast?col[0]:(r.c||col[0]))+'"></div></div>'+
        '<div class="val">'+de(r.a,nk)+eh+'</div></div>';
     }});
   return h+'</div></div>';}
@@ -169,8 +205,13 @@ function saeulen(title,sub,rows,opt){
       '<div class="cn">'+esc(r.n)+'</div></div>';});
   return h+'</div></div>';}
 /* ---------- Zustand ---------- */
-var CUR='start',GRP=null,TFC=null,PA=null,PB=null,SB=load('wp26_sb',true),SORT='a';
-var FKERN=false, FPAR=[], PSUB='profil', KSORT='seiten';
+var CUR='start',GRP=null,TFC=null,PA=null,PB=null,SB=load('wp26_sb',window.matchMedia('(max-width:900px)').matches?false:true),SORT='a';
+var INTRO_OPEN=load('wp26_introopen',window.matchMedia('(max-width:720px)').matches?false:true);
+var FILT_OPEN=load('wp26_filtopen',window.matchMedia('(max-width:720px)').matches?false:true);
+var FKERN=false, FPAR=[], PSUB='profil', KSORT='seiten', GRPOPEN={}, GRPCLOSED={};
+var DURCH_UT=load('wp26_durch',null), FOFFEN=false;
+function fOffen(){FOFFEN=!FOFFEN;render();}
+function passtDurch(q){return passt(q)&&(!FOFFEN||!WAHL[q.c]);}
 function fKern(){FKERN=!FKERN;render();}
 function fPartei(p){var i=FPAR.indexOf(p);if(i<0)FPAR.push(p);else FPAR.splice(i,1);render();}
 function fAlle(){FPAR=[];FKERN=false;render();}
@@ -182,23 +223,31 @@ var NOPARF=false;
 function sichtbareParteien(){
   if(NOPARF)return P;
   return FPAR.length?P.filter(function(p){return FPAR.indexOf(p)>=0}):P;}
-function filterleiste(n,ges,ohneParteien){
-  var h='<div class="filt"><span class="fl">Filter</span>'+
+function filterleiste(n,ges,ohneParteien,mitOffen){
+  var h='<div class="fgrp"><span class="fl">Filter</span>'+
    '<button class="'+(FKERN?'on':'')+'" onclick="fKern()" '+
    'title="Nur Fragen zeigen, zu denen sich mindestens fünf Parteien äußern">Nur Kernfragen</button>';
+  if(mitOffen)h+='<button class="'+(FOFFEN?'on':'')+'" onclick="fOffen()" '+
+   'title="Nur Fragen zeigen, zu denen du noch keine Position gewählt hast">Nur unbeantwortete</button>';
+  h+='</div>';
   if(!ohneParteien){
-    h+='<span class="sep"></span><span class="fl">Partei</span>';
+    h+='<span class="sep"></span><div class="fgrp"><span class="fl">Partei</span>';
     P.forEach(function(p){
       h+='<button class="'+(FPAR.indexOf(p)>=0?'on':'')+'" onclick="fPartei(\''+p.replace(/'/g,"\\'")+'\')" '+
         'title="Antworten von '+esc(p)+' ein- oder ausblenden">'+esc(p)+'</button>';});
-    h+='<button onclick="fAlle()" title="Alle Filter zurücksetzen">Alle anzeigen</button>';}
+    h+='<button onclick="fAlle()" title="Alle Filter zurücksetzen">Alle anzeigen</button></div>';}
+  if(!ohneParteien)h+='<span class="sep"></span><div class="fgrp">'+psortBtn()+'</div>';
   var sp=sichtbareParteien().length;
   h+='<span class="fcount">'+(n===ges?ges+' Fragen':n+' von '+ges+' Fragen')+
-    (!ohneParteien&&sp<P.length?' · '+sp+' von '+P.length+' Parteien':'')+'</span></div>';
-  return h;}
+    (!ohneParteien&&sp<P.length?' · '+sp+' von '+P.length+' Parteien':'')+'</span>';
+  return '<details class="filt"'+(FILT_OPEN?' open':'')+'><summary>'+
+   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" '+
+   'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>'+
+   '<span>Filter</span></summary><div class="fbody">'+h+'</div></details>';}
 /* ---------- Symbole, eingebettet und ohne fremde Bibliothek ---------- */
 function ico(n){var d={
  themen:'<path d="M4 5h16M4 11h16M4 17h10"/>',
+ durch:'<path d="M6 5l7 7-7 7M13 5l7 7-7 7"/>',
  partei:'<circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><path d="M16 7h5M16 11h5M16 15h3"/>',
  streit:'<path d="M13 3 5 13h6l-1 8 8-10h-6z"/>',
  ausw:'<path d="M5 20V10M12 20V4M19 20v-7"/>'};
@@ -206,13 +255,14 @@ function ico(n){var d={
   'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+d[n]+'</svg></span>';}
 function go(v,arg){CUR=v;NEU=true;
   if(v==='themen'&&arg){TFC=arg;GRP=BYTF[arg]?BYTF[arg]._gc:GRP}
+  if(v==='partei'&&arg){PA=arg;PB=null;PSUB='profil'}
   window.scrollTo(0,0);render();
   document.querySelectorAll('nav button[data-v]').forEach(function(b){b.className=b.dataset.v===v?'on':''});}
-function toggleSb(){SB=!SB;save('wp26_sb',SB);render();}
 function jumpTf(tf){TFC=tf;GRP=BYTF[tf]._gc;CUR='themen';NEU=true;render();
   document.querySelectorAll('nav button[data-v]').forEach(function(b){b.className=b.dataset.v==='themen'?'on':''});
   setTimeout(function(){var el=document.getElementById('tf-'+tf);
     if(el)el.scrollIntoView({block:'start',behavior:'smooth'})},60);}
+function toggleSb(){SB=!SB;save('wp26_sb',SB);render();}
 function jump(ut){var q=BYUT[ut];jumpTf(q._tc);
   setTimeout(function(){var el=document.getElementById('f-'+ut);
     if(el){el.open=true;el.scrollIntoView({block:'center'})}},260);}
@@ -224,7 +274,7 @@ function sbThemen(){
     g.tf.forEach(function(t){
       var m=t.fragen.filter(passt).length;
       if(!m)return;
-      h+='<a href="#" class="sp-'+t.c+(TFC===t.c?' on':'')+'" onclick="jumpTf(\''+t.c+'\');return false">'+
+      h+='<a href="#" class="sp-'+t.c+'" onclick="jumpTf(\''+t.c+'\');return false">'+
         esc(t.n)+'<small>'+m+' Fragen</small></a>';});});
   return h;}
 function sbAusw(){
@@ -275,70 +325,161 @@ function sbPartei(){
     return '<a href="#p-'+x[0]+'" class="sp-p'+x[0]+'" onclick="scrollTo2(\'p-'+x[0]+
       '\');return false">'+x[1]+'</a>'}).join('');}
 function scrollTo2(id){var el=document.getElementById(id);
-  if(el)el.scrollIntoView({block:'start',behavior:'smooth'})}
+  if(el){if(el.tagName==='DETAILS')el.open=true;el.scrollIntoView({block:'start',behavior:'smooth'})}}
 /* ---------- Ansichten ---------- */
+/* ---------- Startseite: Beispiel-Teaser ----------
+   Einmal pro Seitenaufruf zufaellig gewaehlt und dann fuer die restliche Sitzung
+   festgehalten, damit sich der Teaser nicht bei jedem Rendern (z.B. Merkzettel-Stern)
+   unter der Hand aendert. */
+var BEISPIEL=null, BEISPIEL_STREIT=null, KARUSSELL=null;
+function beispiel(){
+  if(!BEISPIEL){
+    var kern=ALL.filter(function(q){return q._kern});
+    var q=kern[Math.floor(Math.random()*kern.length)];
+    BEISPIEL={q:q};}
+  return BEISPIEL;}
+function beispielTeaser(){
+  var b=beispiel();
+  return '<div class="beispiel"><div class="bstitel">Beispiel aus den Programmen</div>'+
+   '<h3 style="margin:6px 0 12px">'+esc(b.q.f)+'</h3>'+
+   '<div class="pos">'+sichtbareParteien().map(function(p){return card(p,b.q.z[p])}).join('')+
+   '</div>'+
+   '<p class="lead" style="margin-top:12px">Zu jeder der '+D.meta.ut+' Fragen stehen alle sieben '+
+   'Positionen — so wie hier. <button class="lnk" onclick="jump(\''+b.q.c+
+   '\')">Alle 7 Positionen zu dieser Frage ansehen</button></p></div>';}
+function beispielStreit(){
+  if(!BEISPIEL_STREIT){
+    var s=streitFragen();
+    BEISPIEL_STREIT=s[Math.floor(Math.random()*s.length)];}
+  return BEISPIEL_STREIT;}
+function streitTeaser(){
+  var q=beispielStreit();
+  return '<div class="beispiel"><div class="bstitel">Eine von '+streitFragen().length+
+   ' Streitfragen</div><h3 style="margin:6px 0 12px">'+esc(q.f)+'</h3>'+lagerzeile(q)+
+   '<p class="lead" style="margin-top:12px"><button class="lnk" '+
+   'onclick="go(\'streit\')">Alle Streitfragen ansehen</button></p></div>';}
+function karussellWahl(){
+  var pool=ALL.filter(function(q){return q._kern});
+  var pick=[],used={},n=Math.min(10,pool.length);
+  while(pick.length<n){
+    var q=pool[Math.floor(Math.random()*pool.length)];
+    if(used[q.c])continue;used[q.c]=true;pick.push(q);}
+  return pick;}
+function karussellKarte(q,hidden){
+  return '<button class="fragchip"'+(hidden?' tabindex="-1" aria-hidden="true"':'')+
+    ' onclick="jump(\''+q.c+'\')"><span class="qf">'+esc(q.f)+'</span>'+
+    '<div class="chips">'+chips(q,sichtbareParteien())+'</div></button>';}
+function karussellTeaser(){
+  if(!KARUSSELL)KARUSSELL=karussellWahl();
+  var chipsHtml=KARUSSELL.map(function(q){return karussellKarte(q,false)}).join('');
+  var dup=KARUSSELL.map(function(q){return karussellKarte(q,true)}).join('');
+  return '<div id="s-karussell" class="sp" data-sp="s-karussell">'+
+   '<div class="bstitel">Ein paar Fragen zum Reinklicken</div>'+
+   '<div class="karussell"><div class="karussell-track" id="ktrack">'+chipsHtml+dup+
+   '</div></div></div>';}
+function karussellSpeed(){
+  var tr=document.getElementById('ktrack');
+  if(!tr)return;
+  var w=tr.scrollWidth/2, pxs=32;
+  tr.style.animationDuration=Math.max(20,Math.round(w/pxs))+'s';}
+function methodikBox(){
+  return '<details class="info sp" id="s-methodik" data-sp="s-methodik"><summary><h3>'+
+   'Wie diese Übersicht entstanden ist</h3><span class="mhint">— kurz: alle sieben Programme '+
+   'vollständig gelesen, mit einem KI-System in '+D.meta.ut+' Fragen gegliedert, jede Aussage '+
+   'mit Seite und Zitat belegt. Mehr erfahren</span></summary>'+vMethodik()+'</details>';}
+function parteienListe(){
+  var a=P.slice();
+  if(a.length<2)return a.join('');
+  return a.slice(0,-1).join(', ')+' und '+a[a.length-1];}
+function slug(s){return s.toLowerCase()
+  .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+  .replace(/[^a-z0-9]+/g,'');}
+function logoFehler(img){
+  var span=document.createElement('span');
+  span.className='pl-ini';
+  span.textContent=IN[img.alt]||img.alt;
+  img.replaceWith(span);}
+function parteiLogos(){
+  return '<div class="pl-cap">Die Wahlprogramme folgender Parteien wurden ausgewertet</div>'+
+   '<div class="pl-row">'+P.map(function(p){
+     return '<button class="pl-item" onclick="go(\'partei\',\''+p.replace(/'/g,"\\'")+'\')"><span class="pl-badge" style="border-bottom-color:'+PC[p]+
+       ';background:'+PC[p]+'1A"><img src="logos/'+slug(p)+'.webp" alt="'+esc(p)+'" '+
+       'onerror="logoFehler(this)"></span><span class="pl-name">'+esc(p)+'</span></button>';
+   }).join('')+'</div>';}
 function vStart(){
   var M=D.meta;
+  var tfz=0;D.gruppen.forEach(function(g){tfz+=g.tf.length});
   var h='<div id="s-intro" class="sp" data-sp="s-intro"></div>';
-  h+='<p class="hero">Sieben Programme, '+M.seiten.toLocaleString('de-DE')+' Seiten, '+
-   'eine Frage nach der anderen.</p>';
+  h+='<p class="hero">Sieben Programme, '+M.seiten.toLocaleString('de-DE')+' Seiten; '+
+   M.ut+' Fragen.</p>';
   h+='<p class="lead gross">Am 20. September 2026 wird das Berliner Abgeordnetenhaus gewählt. '+
-   'Wir haben die Wahlprogramme aller sieben Parteien ausgewertet und auf dieser Seite '+
-   'vergleichbar gemacht.</p>';
-  h+='<p class="lead gross">Dafür sind die Programme in '+M.ut+' Fragen zerlegt, von der '+
-   'Mietenbegrenzung über die Vergabe von Schulplätzen bis zur Zukunft des Tempelhofer Felds. '+
-   'Zu jeder Frage steht, was jedes Programm dazu sagt — kurz zusammengefasst, mit wörtlichem '+
-   'Zitat und der Angabe, auf welcher Seite des jeweiligen Wahlprogramms die Aussage steht. '+
-   'Wo ein Programm zu einer Frage keine Aussage trifft, ist auch das so dargestellt. '+
-   'Es handelt sich dabei nicht um eine Ablehnung.</p>';
-  h+='<h3 id="s-wege" class="sp" data-sp="s-wege">So kommst du durch die Seite</h3>';
-  var wege=[
-   ['themen','Themen','kannst du die Positionen jeder Partei zu jeder Frage einsehen und '+
-    'vergleichen. Fragen kannst du mit dem Stern auf die Merkliste setzen. Positionen kannst '+
-    'du zustimmen.'],
-   ['partei','Parteien','kannst du ein einzelnes Programm im Profil ansehen — Schwerpunkte, '+
-    'Alleinstellungen, Ablehnungen, Zusagen mit Zahlen. Wählst du eine zweite Partei dazu, stehen '+
-    'beide nebeneinander. Ein Unterreiter stellt die Kennzahlen aller sieben Programme in einer '+
-    'Tabelle gegenüber.'],
-   ['streit','Streitfragen','kannst du die Fragen nachlesen, bei denen mindestens eine Partei '+
-    'ablehnt, was eine andere fordert.'],
-   ['ausw','Auswertung','kannst du einsehen, wie sich deine Zustimmung über die Parteien, die '+
-    'Themengruppen und die einzelnen Themenfelder verteilt. Sie bleibt in deinem Browser und wird '+
-    'nirgends gespeichert.'],
-   ['merk','Merkliste','findest du die Fragen wieder, die du dir gemerkt hast.'],
-   ['prog','Programme','stehen die sieben Originaldokumente'+
-    (PDFS?' zum Herunterladen. Jede Seitenangabe in den Antworten führt direkt auf die '+
-     'betreffende Seite im PDF.':' mit ihren Eckdaten.')]];
-  h+='<div class="wege">'+wege.map(function(w){
-    return '<p><button class="lnk" onclick="go(\''+w[0]+'\')">Im Reiter '+esc(w[1])+
-      '</button> '+w[2]+'</p>'}).join('')+'</div>';
-  h+='<p class="lead gross">Was du hier nicht findest: eine Empfehlung. Diese Seite bewertet '+
+   'Hier kannst du die Positionen und Inhalte der Wahlprogramme der beliebtesten Parteien anhand '+
+   'von '+M.ut+' Fragen entlang von '+tfz+' Themenfeldern auswerten und vergleichen. Jede '+
+   'Position ist wörtlich zitiert und mit Seitenangabe zum originalen Wahlprogramm versehen.</p>';
+  h+=parteiLogos();
+  h+=karussellTeaser();
+  h+='<p class="lead gross">Hier wird keine Empfehlung ausgesprochen. Diese Auswertung bewertet '+
    'nicht, stuft nicht ein und sagt nichts darüber, ob ein Vorhaben bezahlbar, rechtlich möglich '+
-   'oder überhaupt Sache des Landes Berlin ist. Sie zeigt, was in den Programmen steht. '+
-   'Das Urteil bleibt bei dir.</p>';
-  h+='<h3 id="s-einstieg" class="sp" data-sp="s-einstieg">Vier Einstiege</h3>';
+   'oder überhaupt Sache des Landes Berlin ist. Sie zeigt, was in den Programmen steht.</p>';
+  h+='<h3 id="s-einstieg" class="sp" data-sp="s-einstieg">Wo möchtest du anfangen?</h3>';
+  var qv=document.getElementById('q')?document.getElementById('q').value:'';
+  h+='<input id="q2" class="qbig" type="search" '+
+   'placeholder="Direkt eine Frage suchen … z. B. Mietendeckel, Tempelhofer Feld, Kita-Plätze" '+
+   'value="'+esc(qv)+'" oninput="suchEingabe(this.value)" '+
+   'onkeydown="if(event.key===\'Enter\')suchAusloesen(this.value)" '+
+   'aria-label="In allen Fragen und Antworten suchen">';
   h+='<div class="ways">'+
    '<button class="way" onclick="go(\'themen\')">'+ico('themen')+'<b>Nach Thema stöbern</b>'+
    '<span>'+M.ut+' Fragen in neun Themengruppen, mit den Antworten aller sieben Programme '+
    'nebeneinander.</span></button>'+
-   '<button class="way" onclick="go(\'partei\')">'+ico('partei')+'<b>Eine Partei ansehen</b>'+
-   '<span>Profil eines Programms: Schwerpunkte, Alleinstellungen, was es ablehnt, was es in '+
-   'Zahlen zusagt.</span></button>'+
+   '<button class="way" onclick="go(\'durch\')">'+ico('durch')+'<b>Frage für Frage</b>'+
+   '<span>Jede Frage einzeln durchgehen, mit allen sieben Positionen nebeneinander — für die '+
+   'konzentrierte Runde statt des Überblicks.</span></button>'+
    '<button class="way" onclick="go(\'streit\')">'+ico('streit')+'<b>Wo wird gestritten?</b>'+
    '<span>Die '+streitFragen().length+' Fragen, bei denen mindestens eine Partei ablehnt, was '+
    'eine andere fordert.</span></button>'+
+   '<button class="way" onclick="go(\'partei\')">'+ico('partei')+'<b>Eine Partei ansehen</b>'+
+   '<span>Profil eines Programms: Schwerpunkte, Alleinstellungen, was es ablehnt, was es in '+
+   'Zahlen zusagt.</span></button>'+
    '<button class="way" onclick="go(\'ausw\')">'+ico('ausw')+'<b>Eigene Auswahl auswerten</b>'+
    '<span>Positionen zustimmen und sehen, wie sich die Zustimmung über die Themen '+
    'verteilt.</span></button>'+
    '</div>';
-  h+='<h3 id="s-gruppen" class="sp" data-sp="s-gruppen">Die neun Themengruppen</h3><div class="grid">';
+  h+='<h3 id="s-gruppen" class="sp" data-sp="s-gruppen">Direkt zu einem Thema springen</h3><div class="grid">';
   D.gruppen.forEach(function(g){
     var n=0,k=0;g.tf.forEach(function(t){n+=t.fragen.length;
       t.fragen.forEach(function(q){if(q._kern)k++})});
     h+='<button class="gcard" onclick="jumpTf(\''+g.tf[0].c+'\')"><b>'+esc(g.n)+'</b>'+
        '<span>'+n+' Fragen · '+k+' Kernfragen</span></button>';});
   h+='</div>';
-  h+=vMethodik();
+  h+='<div id="s-beispiel" class="sp" data-sp="s-beispiel">'+beispielTeaser()+'</div>';
+  h+='<div id="s-streit" class="sp" data-sp="s-streit">'+streitTeaser()+'</div>';
+  h+='<details class="info sp" id="s-wege" data-sp="s-wege"><summary><h3>So kommst du durch die '+
+   'Seite</h3><span class="mhint">— kurz: oben die Reiter wählen, hier stehen sie einzeln '+
+   'erklärt</span></summary>';
+  var wege=[
+   ['themen','Themen','hier kannst du die Positionen jeder Partei zu jeder Frage einsehen und '+
+    'vergleichen. Fragen kannst du mit dem Stern auf die Merkliste setzen. Positionen kannst '+
+    'du zustimmen.'],
+   ['durch','Frage für Frage','hier gehst du jede Frage einzeln durch, mit allen sieben '+
+    'Positionen nebeneinander, und kannst gezielt zu einem Themenfeld springen.'],
+   ['partei','Parteien','hier kannst du ein einzelnes Programm im Profil ansehen — Schwerpunkte, '+
+    'Alleinstellungen, Ablehnungen, Zusagen mit Zahlen. Wählst du eine zweite Partei dazu, stehen '+
+    'beide nebeneinander. Ein Unterreiter stellt die Kennzahlen aller sieben Programme in einer '+
+    'Tabelle gegenüber.'],
+   ['streit','Streitfragen','hier kannst du die Fragen nachlesen, bei denen mindestens eine Partei '+
+    'ablehnt, was eine andere fordert.'],
+   ['ausw','Auswertung','hier kannst du einsehen, wie sich deine Zustimmung über die Parteien, die '+
+    'Themengruppen und die einzelnen Themenfelder verteilt. Sie bleibt in deinem Browser und wird '+
+    'nirgends gespeichert.'],
+   ['merk','Merkliste','hier findest du die Fragen wieder, die du dir gemerkt hast.'],
+   ['prog','Programme','hier findest du die Eckdaten zu jedem Wahlprogramm'+
+    (PDFS?' sowie die Originaldokumente zum Herunterladen. Jede Seitenangabe in den Antworten '+
+     'führt direkt auf die betreffende Seite im PDF.':'.')]];
+  h+='<div class="wege">'+wege.map(function(w){
+    return '<p><button class="lnk" onclick="go(\''+w[0]+'\')">'+esc(w[1])+
+      '</button> — '+w[2]+'</p>'}).join('')+'</div></details>';
+  h+=methodikBox();
   return h;}
 /* ---------- Methodik: steht am Fuß der Startseite ----------
    Alle Zahlen werden aus den Daten gezogen, damit sie nach Korrekturen richtig bleiben. */
@@ -361,7 +502,7 @@ function vMethodik(){
   var anteile=P.map(function(p){return D.schwer[p].belegte/D.stats[p].seiten*100});
   var amin=Math.round(Math.min.apply(null,anteile)), amax=Math.round(Math.max.apply(null,anteile));
   var tfz=0;D.gruppen.forEach(function(g){tfz+=g.tf.length});
-  var h='<h3 id="s-methodik" class="sp" data-sp="s-methodik">Wie diese Übersicht entstanden ist</h3>';
+  var h='';
   function ab(t,k){return '<h4 class="mh">'+t+'</h4>'+k;}
   h+=ab('Was ausgewertet wurde',
    '<p class="lead">Grundlage sind ausschließlich die sieben Wahlprogramme zur Wahl des Berliner '+
@@ -446,37 +587,125 @@ function zurMethodik(){
   if(CUR!=='start'){go('start');setTimeout(function(){scrollTo2('s-methodik')},80);}
   else scrollTo2('s-methodik');}
 function sbStart(){
-  var a=[['s-intro','Worum es geht'],['s-wege','So kommst du durch die Seite'],
-         ['s-einstieg','Vier Einstiege'],['s-gruppen','Die neun Themengruppen'],
+  var a=[['s-intro','Worum es geht'],['s-einstieg','Wo möchtest du anfangen?'],
+         ['s-gruppen','Direkt zu einem Thema springen'],
+         ['s-karussell','Ein paar Fragen zum Reinklicken'],
+         ['s-beispiel','Beispiel aus den Programmen'],['s-streit','Wo wird gestritten'],
+         ['s-wege','So kommst du durch die Seite'],
          ['s-methodik','Wie das entstanden ist']];
   return '<h4>Startseite</h4>'+a.map(function(x){
     return '<a href="#'+x[0]+'" class="sp-'+x[0]+'" onclick="scrollTo2(\''+x[0]+
       '\');return false">'+x[1]+'</a>'}).join('');}
 function sortiert(fragen){
-  return fragen.slice().sort(function(a,b){return (b._kern?1:0)-(a._kern?1:0)});}
+  return fragen.slice().sort(function(a,b){
+    return ((b._kern?1:0)-(a._kern?1:0))||(b._n-a._n);});}
+function durchListe(){
+  var out=[];
+  D.gruppen.forEach(function(g){g.tf.forEach(function(t){
+    sortiert(t.fragen).filter(passtDurch).forEach(function(q){out.push(q)});});});
+  return out;}
+function durchSpringZuTf(tf){
+  var t=BYTF[tf];if(!t)return;
+  var q=sortiert(t.fragen).filter(passtDurch)[0];
+  if(q)durchGehe(q.c);}
+function durchSpringZuPartei(p){
+  var box=document.querySelector('.durch-card .pos');
+  if(!box)return;
+  var el=box.querySelector('[data-partei="'+p.replace(/"/g,'')+'"]');
+  if(el)el.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});}
+function durchGehe(ut){DURCH_UT=ut;save('wp26_durch',ut);window.scrollTo(0,0);render();}
+function durchSchritt(delta){
+  var liste=durchListe();
+  var i=liste.findIndex(function(q){return q.c===DURCH_UT});
+  if(i<0)i=0;
+  var ni=Math.max(0,Math.min(liste.length-1,i+delta));
+  if(liste[ni])durchGehe(liste[ni].c);}
+function vDurch(){
+  var liste=durchListe();
+  var h='<h2>Frage für Frage</h2><p class="lead">Eine Frage nach der anderen, mit allen sieben '+
+   'Positionen nebeneinander — für die konzentrierte Runde statt des Überblicks. Für den '+
+   'schnellen Überblick eher der Reiter <b>Themen</b>.</p>'+filterleiste(liste.length,ALL.length,false,true);
+  if(!liste.length)return h+'<div class="empty">Keine Frage passt zu diesen Filtern.</div>';
+  var i=liste.findIndex(function(q){return q.c===DURCH_UT});
+  if(i<0){i=0;DURCH_UT=liste[0].c;save('wp26_durch',DURCH_UT);}
+  var q=liste[i];
+  var tfFragen=sortiert(BYTF[q._tc].fragen).filter(passtDurch);
+  var tfi=tfFragen.findIndex(function(x){return x.c===q.c});
+  if(tfi<0)tfi=0;
+  var opts='';
+  D.gruppen.forEach(function(g){
+    var innen='';
+    g.tf.forEach(function(t){
+      if(!sortiert(t.fragen).filter(passtDurch).length)return;
+      innen+='<option value="'+t.c+'"'+(t.c===q._tc?' selected':'')+'>'+esc(t.n)+'</option>';});
+    if(innen)opts+='<optgroup label="'+esc(g.n)+'">'+innen+'</optgroup>';});
+  h+='<div class="durch"><div class="durch-top"><span class="durch-bc">'+esc(q._g)+' › </span>'+
+   '<span class="durch-jumpwrap"><select class="durch-jump" onchange="durchSpringZuTf(this.value)" '+
+   'aria-label="Zu einem anderen Themenfeld springen">'+opts+'</select></span></div>';
+  h+='<div class="durch-bar"><div class="durch-bar-fill" style="width:'+((tfi+1)/tfFragen.length*100)+
+   '%"></div></div><div class="durch-barlabel">'+(tfi+1)+' von '+tfFragen.length+
+   ' in diesem Themenfeld</div>';
+  h+='<div class="durch-card"><div class="qt"><div class="qf">'+esc(q.f)+'</div><div class="qs">'+
+   esc(q.s)+'</div>'+flags(q)+'</div><div class="chips">'+chips(q,sichtbareParteien(),true)+star(q.c)+
+   '</div>'+qInhalt(q)+'</div>';
+  h+='<div class="durch-nav">'+
+   '<button class="durch-btn"'+(i<=0?' disabled':'')+' onclick="durchSchritt(-1)">\u2190 Zurück</button>'+
+   '<button class="durch-btn primary"'+(i>=liste.length-1?' disabled':'')+' onclick="durchSchritt(1)">Weiter \u2192</button>'+
+   '</div>';
+  if(i>=liste.length-1)h+='<p class="lead" style="margin-top:10px">Das waren alle '+liste.length+
+   ' Fragen zu diesen Filtern.</p>';
+  h+='</div>';
+  return h;}
 function vThemen(){
   var sicht=ALL.filter(passt).length;
-  var h='<h2>Themen</h2><p class="lead">Links kannst du das Themenfeld wählen, alternativ durch die '+
-   'Seite scrollen. Die Positionen der Parteien zu einer Frage siehst du, wenn du die Frage anklickst. '+
-   'Du kannst den Positionen zustimmen, die dir am meisten zusagen — die Auswertung deiner Zustimmung '+
-   'findest du im Reiter <b>Auswertung</b>.</p>'+kuerzungshinweis()+
-   filterleiste(sicht,ALL.length)+kernlegende()+legende();
+  var h='<h2>Themen</h2>';
+  h+='<details class="info themeninfo"'+(INTRO_OPEN?' open':'')+'><summary><h3>Wie diese Übersicht '+
+   'funktioniert</h3><span class="mhint">— kurz: Themenfeld wählen, Positionen vergleichen, zustimmen '+
+   'was passt</span></summary><div class="ti-body"><p class="lead">Links kannst du das Themenfeld '+
+   'wählen, alternativ durch die Seite scrollen. Die Positionen der Parteien zu einer Frage siehst du, '+
+   'wenn du die Frage anklickst. Du kannst den Positionen zustimmen, die dir am meisten zusagen — die '+
+   'Auswertung deiner Zustimmung findest du im Reiter <b>Auswertung</b>.</p>'+kuerzungshinweis()+
+   kernlegende()+begriffeBox()+'</div></details>';
+  h+=filterleiste(sicht,ALL.length);
   if(!sicht)return h+'<div class="empty">Keine Frage passt zu diesen Filtern.</div>';
   D.gruppen.forEach(function(g){
     var n=0;g.tf.forEach(function(t){n+=t.fragen.filter(passt).length});
     if(!n)return;
     var offen=g.tf.some(function(t){return t.c===TFC});
-    h+='<details class="grp"'+(offen||GRP===g.c?' open':'')+' data-g="'+g.c+'"><summary>'+esc(g.n)+
-      '<span class="cnt">'+n+' '+(n===1?'Frage':'Fragen')+'</span></summary><div class="tf">';
-    g.tf.forEach(function(t){
-      var fr=sortiert(t.fragen).filter(passt);
-      if(!fr.length)return;
-      var k=fr.filter(function(q){return q._kern}).length;
-      h+='<h3 class="tfhd sp" id="tf-'+t.c+'" data-sp="'+t.c+'">'+esc(t.n)+
-        '<span class="cnt">'+fr.length+' Fragen'+(k?' · '+k+' Kernfragen':'')+'</span></h3>';
-      fr.forEach(function(q){h+=qBlock(q)});});
-    h+='</div></details>';});
+    var voll=offen||GRP===g.c||(GRPOPEN[g.c]&&!GRPCLOSED[g.c]);
+    h+='<details class="grp"'+(voll?' open':'')+' data-g="'+g.c+'"><summary>'+esc(g.n)+
+      '<span class="cnt">'+n+' '+(n===1?'Frage':'Fragen')+'</span></summary>'+
+      (voll?'<div class="tf">'+gruppeTf(g)+'</div>':'<div class="tf" data-lazy-g="'+g.c+'"></div>')+
+      '</details>';});
   return h;}
+function gruppeTf(g){
+  var h='';
+  g.tf.forEach(function(t){
+    var fr=sortiert(t.fragen).filter(passt);
+    if(!fr.length)return;
+    var k=fr.filter(function(q){return q._kern}).length;
+    h+='<h3 class="tfhd sp" id="tf-'+t.c+'" data-sp="'+t.c+'"><span class="tftxt">'+esc(t.n)+'</span>'+
+      '<span class="cnt">'+fr.length+' Fragen'+(k?' · '+k+' Kernfragen':'')+'</span></h3>';
+    fr.forEach(function(q){h+=qBlock(q)});});
+  return h;}
+function bindKlappen(){
+  var f=document.querySelector('#view details.filt');
+  if(f&&!f.dataset.bound){f.dataset.bound='1';
+    f.addEventListener('toggle',function(){FILT_OPEN=f.open;save('wp26_filtopen',f.open)});}
+  var t=document.querySelector('#view details.themeninfo');
+  if(t&&!t.dataset.bound){t.dataset.bound='1';
+    t.addEventListener('toggle',function(){INTRO_OPEN=t.open;save('wp26_introopen',t.open)});}}
+function lazyGruppenBinden(){
+  document.querySelectorAll('#shell details.grp[data-g]').forEach(function(d){
+    var gc=d.dataset.g;
+    if(d.dataset.lazyBound)return;
+    d.dataset.lazyBound='1';
+    d.addEventListener('toggle',function(){
+      if(!d.open){GRPCLOSED[gc]=true;return;}
+      GRPOPEN[gc]=true;delete GRPCLOSED[gc];
+      var tf=d.querySelector('.tf[data-lazy-g]');
+      if(tf){var g=BYGRP[gc];if(g){tf.innerHTML=gruppeTf(g);}tf.removeAttribute('data-lazy-g');}
+      window.requestAnimationFrame(spyRun);});});}
 function streitFragen(){return ALL.filter(function(q){return q.art==='gegenlaeufig'});}
 function vStreit(){
   NOPARF=true;
@@ -487,7 +716,7 @@ function vStreit(){
    'ablehnt und zugleich einen eigenen Vorschlag macht. In den Antworten steht bei ihr dann '+
    '„Teils dafür, teils dagegen" oder eine Forderung mit dem Zusatz, dass sie dabei ausdrücklich '+
    'etwas ablehnt. „Nur Ablehnung" steht nur dort, wo das Programm keinen eigenen Weg beschreibt.</div>'+
-   filterleiste(um.length,ges,true)+kernlegende()+legende();
+   filterleiste(um.length,ges,true)+kernlegende()+begriffeBox();
   if(!um.length){NOPARF=false;return h+'<div class="empty">Keine Frage passt zu diesem Filter.</div>';}
   D.gruppen.forEach(function(g){
     var teil=um.filter(function(q){return q._gc===g.c});
@@ -499,7 +728,7 @@ function vStreit(){
     tfs.forEach(function(tc){
       var fr=teil.filter(function(q){return q._tc===tc})
         .sort(function(a,b){return ((b._kern?1:0)-(a._kern?1:0))||(b.sp-a.sp)||(b._n-a._n)});
-      h+='<h3 class="tfhd sp" id="st-'+tc+'" data-sp="'+tc+'">'+esc(BYTF[tc].n)+
+      h+='<h3 class="tfhd sp" id="st-'+tc+'" data-sp="'+tc+'"><span class="tftxt">'+esc(BYTF[tc].n)+'</span>'+
         '<span class="cnt">'+fr.length+'</span></h3>';
       fr.forEach(function(q){h+=qBlock(q,false,true,lagerzeile(q))});});
     h+='</div></details>';});
@@ -573,11 +802,11 @@ function vPartei(){
    '</div>';
   if(PSUB==='kennz')return h+vKennz();
   h+='<p class="lead">Wähle eine Partei für ihr Profil. Wähle eine zweite dazu, '+
-   'um Kennzahlen, Schwerpunkte und Positionen zu vergleichen.</p><div class="psel">';
+   'um Kennzahlen, Schwerpunkte und Positionen zu vergleichen.</p>'+psortBtn()+'<div class="psel">';
   P.forEach(function(p){
     var on=(PA===p||PB===p);
-    h+='<button class="pbtn'+(on?' on':'')+'" style="'+(on?'background:'+PC[p]+';border-color:'+PC[p]+
-      ';color:'+(dark()?'#12100e':'#fffefc'):'')+'" onclick="pick(\''+p.replace(/'/g,"\\'")+'\')">'+esc(p)+'</button>';});
+    h+='<button class="pbtn'+(on?' on':'')+'" style="'+(on?'border-bottom-color:'+PC[p]:'')+
+      '" onclick="pick(\''+p.replace(/'/g,"\\'")+'\')">'+esc(p)+'</button>';});
   h+='</div>';
   if(PA&&PB)return h+cmpView();
   if(PA)return h+profil(PA);
@@ -607,10 +836,10 @@ function vKennz(){
       '<td class="num">'+r.allein+'</td></tr>';});
   h+='</tbody></table>';
   h+=chart('Seiten je Programm','Umfang des Dokuments — kein Maß für inhaltliche Breite',
-    P.map(function(p){return {n:p,a:D.stats[p].seiten}}).sort(function(a,b){return b.a-a.a}),
+    P.map(function(p){return {n:p,a:D.stats[p].seiten,c:PC[p]}}).sort(function(a,b){return b.a-a.a}),
     {einheit:'',nk:0});
   h+=chart('Abdeckung der 484 Fragen','Anteil der Fragen, zu denen das Programm überhaupt etwas sagt',
-    P.map(function(p){return {n:p,a:D.stats[p].uts/484*100}}).sort(function(a,b){return b.a-a.a}));
+    P.map(function(p){return {n:p,a:D.stats[p].uts/484*100,c:PC[p]}}).sort(function(a,b){return b.a-a.a}));
   h+='<div class="note"><b>Wie das zu lesen ist.</b> Ein längeres Programm beantwortet in der Regel '+
    'mehr Fragen. Beides sagt nichts darüber, wie konkret oder wie tragfähig die Antworten sind — und '+
    'ein kürzeres Programm ist kein schlechteres, sondern eines mit engerer Themenwahl.</div>';
@@ -653,7 +882,7 @@ function profil(p){
    '<p class="lead">Wie sich die '+sc.belegte+' Seiten verteilen, auf denen dieses Programm Position '+
    'bezieht (von '+s2.seiten+' Seiten insgesamt). Jede Seite zählt einmal und wird auf die Themen '+
    'aufgeteilt, die sie berührt — die Anteile ergeben zusammen 100 %.</p>';
-  h+=chart('Anteil an den belegten Programmseiten',esc(p)+' · alle 28 Themenfelder, absteigend',tfRows(p));
+  h+=chart('Anteil an den belegten Programmseiten',esc(p)+' · alle 28 Themenfelder, absteigend',tfRows(p),{col:[PC[p]]});
   // Listen nach Themengruppen gliedern, damit sie nicht als eine lange Kette erscheinen
   function block(id,title,lead,list,f){
     if(!list.length)return '<h3 id="'+id+'" class="sp" data-sp="'+id.replace('-','')+
@@ -663,13 +892,9 @@ function profil(p){
     D.gruppen.forEach(function(g){
       var teil=list.filter(function(ut){var q=BYUT[ut];return q&&q._gc===g.c});
       if(!teil.length)return;
-      o+='<h3 class="tfhd" style="margin-left:0;margin-right:0;border-radius:4px">'+esc(g.n)+
-        '<span class="cnt">'+teil.length+'</span></h3><div class="plist">';
-      teil.forEach(function(ut){var q=BYUT[ut],c=q.z[p];
-        o+='<div class="pi'+klasse(q)+'"><b>'+esc(q.f)+'</b><div class="pm">'+esc(f(c))+
-          '<br><span style="color:var(--soft)">'+esc(q._t)+'</span> '+
-          '<a href="#" onclick="jump(\''+ut+'\');return false">alle Antworten</a></div></div>';});
-      o+='</div>';});
+      o+='<h3 class="tfhd"><span class="tftxt">'+esc(g.n)+'</span>'+
+        '<span class="cnt">'+teil.length+'</span></h3>';
+      teil.forEach(function(ut){o+=qBlock(BYUT[ut])});});
     return o+'</div>';}
   h+=block('p-allein','Themen, die nur diese Partei anspricht',
     'Zu diesen Fragen sagt keine andere Partei etwas.',s2.allein,function(c){return c.p});
@@ -694,7 +919,7 @@ function cmpView(){
     var mx=Math.max.apply(null,alle)||1;
     var mit=alle.reduce(function(a,b){return a+b},0)/alle.length;
     h+='<div class="kc"><h5>'+esc(f.name)+'</h5>';
-    [[PA,'var(--c1)'],[PB,'var(--c2)']].forEach(function(pp){
+    [[PA,PC[PA]],[PB,PC[PB]]].forEach(function(pp){
       var v=kpi(pp[0])[f.i][1];
       h+='<div class="kcr"><span class="kn">'+esc(pp[0])+'</span>'+
         '<span class="kcv">'+v+'</span>'+
@@ -716,7 +941,7 @@ function cmpView(){
   h+='<h3 id="p-schwer" class="sp" data-sp="pschwer">Schwerpunkte im Vergleich</h3><p class="lead">Anteil an den belegten '+
    'Programmseiten. Jede Seite zählt einmal und wird auf ihre Themen aufgeteilt.</p>';
   h+=chart('Anteil an den belegten Programmseiten','alle 28 Themenfelder',rows,
-    {two:true,names:[PA,PB],sort:sortbar});
+    {two:true,names:[PA,PB],col:[PC[PA],PC[PB]],sort:sortbar});
   var only=document.getElementById('cmponly')&&document.getElementById('cmponly').checked;
   var rel=ALL.filter(function(q){return (q.z[PA]||q.z[PB])&&passt(q)});
   h+='<h3>Positionen im Vergleich</h3><label class="cbx"><input type="checkbox" id="cmponly" '+
@@ -732,7 +957,7 @@ function cmpView(){
         if(only&&a&&b&&a.s===b.s)return false;
         return passt(q);});
       if(!fr.length)return;
-      gh+='<h3 class="tfhd sp" id="cv-'+t.c+'" data-sp="'+t.c+'">'+esc(t.n)+
+      gh+='<h3 class="tfhd sp" id="cv-'+t.c+'" data-sp="'+t.c+'"><span class="tftxt">'+esc(t.n)+'</span>'+
         '<span class="cnt">'+fr.length+' Fragen</span></h3>';
       fr.forEach(function(q){shown++;
         gh+='<details class="q'+klasse(q)+'" id="cf-'+q.c+'"'+ktitel(q)+'><summary>'+
@@ -772,7 +997,7 @@ function vMerk(){
   if(!uts.length)return h+'<div class="empty">Noch nichts gemerkt. Klicke bei einer Frage auf den '+
     'Stern, um sie hier zu sammeln.</div>';
   h+='<p class="lead">'+uts.length+' gemerkte '+(uts.length===1?'Frage':'Fragen')+'. Die Liste bleibt '+
-   'in diesem Browser gespeichert und wird nirgends übertragen.</p>'+legende();
+   'in diesem Browser gespeichert und wird nirgends übertragen.</p>'+begriffeBox();
   var byg={};
   uts.forEach(function(u){var q=BYUT[u];if(!q)return;(byg[q._g]=byg[q._g]||[]).push(q)});
   Object.keys(byg).forEach(function(g){h+='<h3>'+esc(g)+'</h3>';
@@ -788,7 +1013,7 @@ function vSuche(t){
   var h='<h2>Suche</h2><p class="lead">'+hits.length+' Treffer für „'+esc(t)+
     '" — gesucht wird in den Fragen und im Text aller Antworten.</p>';
   if(!hits.length)return h+'<div class="empty">Nichts gefunden. Versuch ein anderes Wort.</div>';
-  h+=legende();
+  h+=begriffeBox();
   hits.slice(0,80).forEach(function(q){
     h+='<div style="font-size:12.5px;color:var(--soft);margin-top:14px">'+esc(q._g)+' › '+esc(q._t)+
       '</div>'+qBlock(q);});
@@ -811,12 +1036,14 @@ function offeneSetzen(s){
     var k=d.id||(d.dataset?d.dataset.g:'');if(k&&s.o[k])d.open=true});
   window.scrollTo(0,s.y);}
 function render(){
+  P=parteienNachSort();
   var vor=offeneMerken();
   var q=document.getElementById('q').value.trim();
   var main,sb=null;
   if(CUR==='suche'&&q)main=vSuche(q);
   else if(CUR==='start'){main=vStart();sb=sbStart()}
   else if(CUR==='themen'){main=vThemen();sb=sbThemen()}
+  else if(CUR==='durch'){main=vDurch()}
   else if(CUR==='partei'){main=vPartei();sb=sbPartei()}
   else if(CUR==='streit'){main=vStreit();sb=sbStreit()}
   else if(CUR==='ausw'){main=vAusw();sb=sbAusw()}
@@ -830,33 +1057,50 @@ function render(){
       '<span class="brg"><i></i><i></i><i></i></span><span class="sbtxt">Navigation</span></button>';
     el.innerHTML='<aside'+(SB?'':' class="zu"')+'>'+brg+'<div class="sbnav">'+sb+'</div></aside>'+
       '<main id="view">'+main+'</main>';
-    // Die Navigation beginnt nach einem Neuzeichnen immer oben.
     var nv=el.querySelector('.sbnav'); if(nv)nv.scrollTop=0;
-    // Der Fuß gehört in die Inhaltsspalte, sonst endet der Haftbereich der Seitenleiste
-    // oberhalb des Seitenendes und sie rutscht dort nach oben aus dem Bild.
     if(FT)el.querySelector('#view').appendChild(FT);
   }else{
     el.className='shell nosb';
     el.innerHTML='<main id="view">'+main+'</main>';
     if(FT)el.querySelector('#view').appendChild(FT);}
   offeneSetzen(vor);
+  lazyGruppenBinden();
+  bindKlappen();
   spyRun();
-  updMk();}
+  karussellSpeed();
+  updMk();
+  updDurch();}
 /* ---------- Mitlaufende Markierung in der Seitenleiste ----------
    Gedrosselte Auswertung beim Scrollen statt eines IntersectionObservers: der Observer meldet
    nur Zustandswechsel, sodass die Markierung stehen bleibt, wenn zwischen zwei Positionen keine
    Überschrift den Beobachtungsstreifen kreuzt. Die Auswertung läuft über höchstens 28
    Überschriften und ist damit auch auf langen Seiten billig. */
-// Der Fuß wird einmal aus dem Dokument genommen und bei jedem Neuzeichnen wieder in die
-// Inhaltsspalte gehängt — sonst endet der Haftbereich der Seitenleiste vor dem Seitenende.
 var FT=document.getElementById('ft');
 var SPYT=false;
 function spyRun(){
   SPYT=false;
-  var ziele=document.querySelectorAll('#view .sp[data-sp]');
-  if(!ziele.length)return;
   var grenze=(parseInt(getComputedStyle(document.documentElement)
     .getPropertyValue('--navh'))||58)+16;
+  var scope=document;
+  var grps=document.querySelectorAll('#view details.grp[data-g]');
+  if(grps.length){
+    var gakt=null,gbest=null,gi,gel,gt;
+    for(gi=0;gi<grps.length;gi++){
+      gel=grps[gi];
+      if(!gel.offsetParent)continue;
+      gt=gel.getBoundingClientRect().top;
+      if(gt<=grenze&&(gbest===null||gt>gbest)){gbest=gt;gakt=gel}
+    }
+    if(!gakt){
+      for(gi=0;gi<grps.length;gi++){
+        gel=grps[gi];
+        if(gel.offsetParent&&gel.getBoundingClientRect().bottom>grenze){gakt=gel;break}
+      }
+    }
+    if(gakt)scope=gakt;
+  }
+  var ziele=scope.querySelectorAll('.sp[data-sp]');
+  if(!ziele.length)return;
   var akt=null,best=null,i,el,t;
   for(i=0;i<ziele.length;i++){
     el=ziele[i];
@@ -883,19 +1127,23 @@ function spyRun(){
 }
 window.addEventListener('scroll',function(){
   if(!SPYT){SPYT=true;window.requestAnimationFrame(spyRun)}},{passive:true});
+function suchEingabe(v){
+  var q=document.getElementById('q'); if(q&&q.value!==v)q.value=v;
+  var q2=document.getElementById('q2'); if(q2&&q2.value!==v)q2.value=v;
+  if(!v.trim()&&CUR==='suche')go('start');}
+function suchAusloesen(v){
+  v=(v||'').trim();
+  if(!v){if(CUR==='suche')go('start');return;}
+  CUR='suche';
+  document.querySelectorAll('nav button[data-v]').forEach(function(b){b.className=''});
+  render();}
 function start(){
   document.querySelectorAll('nav button[data-v]').forEach(function(b){
     b.onclick=function(){document.getElementById('q').value='';go(b.dataset.v)}});
-  var t=null;
-  document.getElementById('q').addEventListener('input',function(e){
-    clearTimeout(t);t=setTimeout(function(){
-      if(e.target.value.trim()){CUR='suche';
-        document.querySelectorAll('nav button[data-v]').forEach(function(b){b.className=''});render()}
-      else go('start')},220);});
-  // Höhe der angehefteten Reiterleiste für Seitenleiste und Sprungmarken bereitstellen.
-  // Die Höhe ändert sich nur bei Größenänderung des Fensters, nicht beim Scrollen — daher
-  // gibt es hier keine Rückkopplung zwischen Layout und Scrollposition.
-  function navh(){var el=document.querySelector('nav');
+  document.getElementById('q').addEventListener('input',function(e){suchEingabe(e.target.value)});
+  document.getElementById('q').addEventListener('keydown',function(e){
+    if(e.key==='Enter')suchAusloesen(e.target.value)});
+  function navh(){var el=document.querySelector('header');
     if(el)document.documentElement.style.setProperty('--navh',el.offsetHeight+'px');}
   window.addEventListener('resize',navh);
   navh();render();

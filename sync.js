@@ -106,8 +106,8 @@
     b.type = 'button';
     b.textContent = knopfText();
     b.onclick = dialog;
-    var nav = document.querySelector('nav .in');
-    if (nav) nav.appendChild(b);
+    var ziel = document.querySelector('nav .in') || document.querySelector('.top');
+    if (ziel) ziel.appendChild(b);
   }
 
   function dialog() {
