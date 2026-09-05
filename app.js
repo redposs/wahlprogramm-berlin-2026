@@ -622,7 +622,7 @@ function durchSchritt(delta){
   if(liste[ni])durchGehe(liste[ni].c);}
 function vDurch(){
   var liste=durchListe();
-  var h='<h2>Frage für Frage</h2><p class="lead">Eine Frage nach der anderen, mit allen sieben '+
+  var h='<h2>Frage für Frage</h2><p class="lead durch-intro">Eine Frage nach der anderen, mit allen sieben '+
    'Positionen nebeneinander — für die konzentrierte Runde statt des Überblicks. Für den '+
    'schnellen Überblick eher der Reiter <b>Themen</b>.</p>'+filterleiste(liste.length,ALL.length,false,true);
   if(!liste.length)return h+'<div class="empty">Keine Frage passt zu diesen Filtern.</div>';
@@ -1143,6 +1143,17 @@ function start(){
   document.getElementById('q').addEventListener('input',function(e){suchEingabe(e.target.value)});
   document.getElementById('q').addEventListener('keydown',function(e){
     if(e.key==='Enter')suchAusloesen(e.target.value)});
+  var btnSuch=document.getElementById('btn-such');
+  if(btnSuch)btnSuch.addEventListener('click',function(){
+    var top=document.querySelector('.top');
+    var offen=top.classList.toggle('o-such');
+    btnSuch.classList.toggle('on',offen);
+    btnSuch.setAttribute('aria-expanded',offen?'true':'false');
+    if(offen)setTimeout(function(){var q=document.getElementById('q');if(q)q.focus()},10);});
+  var btnSync=document.getElementById('btn-sync-ic');
+  if(btnSync)btnSync.addEventListener('click',function(){
+    var b=document.getElementById('sync-knopf');
+    if(b)b.click();});
   function navh(){var el=document.querySelector('header');
     if(el)document.documentElement.style.setProperty('--navh',el.offsetHeight+'px');}
   window.addEventListener('resize',navh);
