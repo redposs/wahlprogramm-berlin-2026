@@ -14,6 +14,14 @@
 <body>
 <header><div class="top">
   <span class="ttl">Wahlprogramme Berlin 2026</span>
+  <div class="hdricons">
+    <button type="button" class="hicon" id="btn-such" aria-label="Suche öffnen" aria-expanded="false">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    </button>
+    <button type="button" class="hicon" id="btn-sync-ic" aria-label="Auf meinen Geräten synchronisieren">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.2M20 12a8 8 0 0 1-14 5.2"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>
+    </button>
+  </div>
   <nav class="reiter">
     <button data-v="start" class="on">Start</button>
     <button data-v="themen">Themen</button>
@@ -25,14 +33,6 @@
     <button data-v="merk">Merkliste<span id="mkc" class="mk hide"></span></button>
   </nav>
   <div class="srch"><input id="q" type="search" placeholder="Suchen, z. B. Mietendeckel …" aria-label="In allen Fragen und Antworten suchen"></div>
-  <div class="hdricons">
-    <button type="button" class="hicon" id="btn-such" aria-label="Suche öffnen" aria-expanded="false">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-    </button>
-    <button type="button" class="hicon" id="btn-sync-ic" aria-label="Auf meinen Geräten synchronisieren">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14-5.2M20 12a8 8 0 0 1-14 5.2"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>
-    </button>
-  </div>
 </div></header>
 <div id="shell" class="shell nosb"></div>
 <footer id="ft">Grundlage: die sieben Wahlprogramme zur Wahl des Berliner Abgeordnetenhauses am

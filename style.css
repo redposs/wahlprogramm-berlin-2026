@@ -50,13 +50,13 @@ header::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px
 .hicon.on{color:var(--accent)}
 @media(max-width:900px){
  .top{padding:7px 14px;gap:6px 14px;flex-wrap:wrap;height:auto}
- .ttl{flex:0 0 100%;border-right:none;padding-right:0;font-size:14px}
- .reiter{flex:1 1 auto;min-width:0;flex-wrap:nowrap;gap:16px;overflow-x:auto;
+ .ttl{flex:1 1 auto;border-right:none;padding-right:0;font-size:14px}
+ .hdricons{display:flex;gap:2px;flex:0 0 auto;margin-left:auto}
+ .reiter{flex:1 1 100%;min-width:0;flex-wrap:nowrap;gap:16px;overflow-x:auto;
   scrollbar-width:none;-webkit-overflow-scrolling:touch}
  .reiter::-webkit-scrollbar{display:none}
  .reiter button{font-size:15.5px}
- .hdricons{display:flex;gap:2px;flex:0 0 auto;margin-left:auto}
- .srch{display:none;margin-left:0;flex:1 1 100%;order:5}
+ .srch{display:none;margin-left:0;flex:1 1 100%}
  .top.o-such .srch{display:flex}
  .srch input{width:100%;min-width:0;font-size:14.5px}
  .syncbtn{display:none!important}
@@ -189,7 +189,6 @@ footer a{color:var(--soft)}
 .durch-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .durch-btn.primary:hover:not(:disabled){background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .durch-btn:disabled{opacity:.35;cursor:default}
-@media(max-width:480px){.durch-nav{flex-direction:column}}
 @media(max-width:720px){
  .durch-intro{display:none}
  .durch-card .pos{display:flex;grid-template-columns:none;overflow-x:auto;gap:10px;
