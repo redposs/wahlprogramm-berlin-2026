@@ -190,7 +190,6 @@ footer a{color:var(--soft)}
 .durch-btn.primary:hover:not(:disabled){background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .durch-btn:disabled{opacity:.35;cursor:default}
 @media(max-width:720px){
- .durch-intro{display:none}
  .durch-card .pos{display:flex;grid-template-columns:none;overflow-x:auto;gap:10px;
   scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;border-left:none;
   margin-top:16px;padding-bottom:4px}
@@ -204,6 +203,8 @@ footer a{color:var(--soft)}
 details.info{margin:22px 0}
 .themeninfo{margin:0 0 4px}
 @media(min-width:721px){.themeninfo>summary{display:none}}
+.durchinfo{margin:8px 0 4px}
+@media(min-width:721px){.durchinfo>summary{display:none}}
 details.info>summary{cursor:pointer;list-style:none;padding:2px 0}
 details.info>summary::-webkit-details-marker{display:none}
 details.info>summary::before{content:"▸";color:var(--soft);font-size:14px;display:inline-block;
