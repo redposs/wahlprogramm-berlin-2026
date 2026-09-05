@@ -190,14 +190,17 @@ footer a{color:var(--soft)}
 .durch-btn.primary:hover:not(:disabled){background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .durch-btn:disabled{opacity:.35;cursor:default}
 @media(max-width:720px){
- .durch-card .pos{display:flex;grid-template-columns:none;overflow-x:auto;gap:10px;
+ .durch-top{margin:12px 0 6px}
+ .durch-barlabel{margin:0 0 8px}
+ .durch-card{padding:14px 8px;margin:0 0 12px}
+ .durch-card .pos{display:flex;grid-template-columns:none;overflow-x:auto;gap:8px;
   scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;border-left:none;
-  margin-top:16px;padding-bottom:4px}
- .durch-card .pc{flex:0 0 88%;width:88%;scroll-snap-align:center;border-left:none;
-  border-top:1px solid var(--hair);max-height:52vh;overflow-y:auto;
+  margin-top:12px;padding-bottom:4px}
+ .durch-card .pc{flex:0 0 90%;width:90%;padding:12px 10px;scroll-snap-align:center;
+  border-left:none;border-top:1px solid var(--hair);max-height:54vh;overflow-y:auto;
   -webkit-overflow-scrolling:touch}
- .durch-nav{position:sticky;bottom:0;background:var(--paper);margin:10px 0 0;
-  padding:10px 0 12px;border-top:1px solid var(--line)}
+ .durch-nav{position:sticky;bottom:0;background:var(--paper);margin:8px 0 0;
+  padding:8px 0 10px;border-top:1px solid var(--line)}
 }
 .bstitel{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--softer)}
 details.info{margin:22px 0}

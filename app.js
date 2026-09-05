@@ -208,7 +208,6 @@ function saeulen(title,sub,rows,opt){
 var CUR='start',GRP=null,TFC=null,PA=null,PB=null,SB=load('wp26_sb',window.matchMedia('(max-width:900px)').matches?false:true),SORT='a';
 var INTRO_OPEN=load('wp26_introopen',window.matchMedia('(max-width:720px)').matches?false:true);
 var FILT_OPEN=load('wp26_filtopen',window.matchMedia('(max-width:720px)').matches?false:true);
-var DURCHINFO_OPEN=load('wp26_durchinfo',window.matchMedia('(max-width:720px)').matches?false:true);
 var FKERN=false, FPAR=[], PSUB='profil', KSORT='seiten', GRPOPEN={}, GRPCLOSED={};
 var DURCH_UT=load('wp26_durch',null), FOFFEN=false;
 function fOffen(){FOFFEN=!FOFFEN;render();}
@@ -623,11 +622,7 @@ function durchSchritt(delta){
   if(liste[ni])durchGehe(liste[ni].c);}
 function vDurch(){
   var liste=durchListe();
-  var h='<details class="info durchinfo"'+(DURCHINFO_OPEN?' open':'')+'><summary><h3>Wie diese '+
-   'Ansicht funktioniert</h3></summary><div class="ti-body"><p class="lead">Eine Frage nach der '+
-   'anderen, mit allen sieben Positionen nebeneinander — für die konzentrierte Runde statt des '+
-   'Überblicks. Für den schnellen Überblick eher der Reiter <b>Themen</b>.</p></div></details>'+
-   filterleiste(liste.length,ALL.length,false,true);
+  var h=filterleiste(liste.length,ALL.length,false,true);
   if(!liste.length)return h+'<div class="empty">Keine Frage passt zu diesen Filtern.</div>';
   var i=liste.findIndex(function(q){return q.c===DURCH_UT});
   if(i<0){i=0;DURCH_UT=liste[0].c;save('wp26_durch',DURCH_UT);}
@@ -698,9 +693,7 @@ function bindKlappen(){
   var t=document.querySelector('#view details.themeninfo');
   if(t&&!t.dataset.bound){t.dataset.bound='1';
     t.addEventListener('toggle',function(){INTRO_OPEN=t.open;save('wp26_introopen',t.open)});}
-  var di=document.querySelector('#view details.durchinfo');
-  if(di&&!di.dataset.bound){di.dataset.bound='1';
-    di.addEventListener('toggle',function(){DURCHINFO_OPEN=di.open;save('wp26_durchinfo',di.open)});}}
+}
 function lazyGruppenBinden(){
   document.querySelectorAll('#shell details.grp[data-g]').forEach(function(d){
     var gc=d.dataset.g;
